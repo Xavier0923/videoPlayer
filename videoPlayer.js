@@ -1,13 +1,13 @@
-const moment = require('moment');
-import 'moment-duration-format';
+// const moment = require('moment');;
 
-const videoPlayer = document.querySelector('.videoPlayer');
+const videoPlayer = document.querySelector('.video-player');
 const videoWindow = document.querySelector('.video-window');
 const videoTools = document.querySelector('.video-tools');
 const videoProgress = document.querySelector('.video-progress');
 const videoFeatures = document.querySelector('.video-features');
 const volume_control = document.querySelector('.volume-control');
-const settings = document.querySelector('.settings');
+const speed_setting = document.querySelector('.speed-setting');
+const videoImage_view = document.querySelector('.videoImage-view')
 
 // 功能鍵部分
 const replay_10 = document.querySelector('.replay-10');
@@ -16,28 +16,23 @@ const play_arrow = document.querySelector('.play-arrow');
 const forward_10 = document.querySelector('.forward-10');
 const volume_muted = document.querySelector('.volume-muted');
 // const volume_off = document.querySelector('.volume-off');
-const zoom_out_map = document.querySelector('.zoom-out-map');
-const zoom_in_map = document.querySelector('.zoom-in-map');
+const zoom_map = document.querySelector('.zoom-map');
 const video_progress_inp = document.querySelector('.video-progress-inp');
+const big_play_btn = document.querySelector('.big-play-btn');
+// const big_play_bg = document.querySelector('.big-play-bg');
+const speed_text = document.querySelector('.speed-text');
 
-// moment.duration(videoPlayer.duration, 'seconds').format()
+const totalTime = document.querySelector('.totalTime');
+const currentTime = document.querySelector('.currentTime');
 
-videoPlayer.oncanplay = function(){
-    video_progress_inp.max = videoPlayer.duration;
-};
-
-
-// videoPlayer.oncanplay = function() {
-//     alert("Can start playing video");
-// }
 
 // video player 屬性
 let isPlay = false;
 let volume = 50;
 let isMuted = false;
 let totalSecondTime = 0;
-let totalTime = '';
-let currentTime = '0:00'
+// let totalTime = '';
+// let currentTime = '0:00'
 let showSetting = false;
 let videoSpeed = 1;
 let sliderTime = 0;
@@ -48,17 +43,49 @@ let isLoading = false;
 
 let canvas;
 let videoMarkers = [];
-let image = '';
 let file;
 let imageIndex = 0;
+let image = ''
+
+
+// 事件
+videoPlayer.onloadeddata  = function(){
+    console.log('onloadeddata')
+    // 給進度調時間使用
+    video_progress_inp.max = videoPlayer.duration;
+    video_progress_inp.value = 0;
+    // 顯示總時間、當前時間
+    currentTime.innerHTML = '0:00';
+    totalTime.innerHTML = moment.duration(videoPlayer.duration, 'seconds').format()
+};
+
+videoPlayer.addEventListener('timeupdate', () => {
+    console.log('ontimeupdate');
+    video_progress_inp.value = videoPlayer.currentTime;
+    setInterval(() => {
+        currentTime.innerHTML = moment.duration(videoPlayer.currentTime < 1 ? '0:01' : videoPlayer.currentTime, 'seconds').format()
+    }, 1000)
+
+    canvas = document.createElement('canvas');
+    // 預載寫入畫布
+    canvas.width = '1600';
+    canvas.height = '900';
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(videoPlayer, 0, 0, 1600, 900);
+    image = canvas.toDataURL('image/png');
+    console.log(image)
+})
 
 // 播放/暫停
 function playVideo() {
     if (!isPlay) {
         videoPlayer.play();
+        play_arrow.innerHTML = 'pause'
+        big_play_btn.style.display = 'none'
     } else {
         videoPlayer.pause();
-        clearInterval(timer);
+        play_arrow.innerHTML = 'play_arrow'
+        big_play_btn.style.display = 'flex'
         isLoading = false;
     }
     isPlay = !isPlay;
@@ -89,57 +116,91 @@ function volumeControl(event) {
 // 移動時間點
 function timeControl(event) {
     // 進度條
-    currentTime = this.videoPlayer.nativeElement.currentTime > 0 ? moment.duration(event.target.value, 'seconds').format() : '0:00';
-    this.renderer.setProperty(this.videoPlayer.nativeElement, 'currentTime', event.target.value)
+    videoPlayer.currentTime = event.target.value;
+    currentTime.innerHTML = moment.duration(videoPlayer.currentTime, 'seconds').format()
 }
 
 // 放大/縮小
 function fullScreen() {
 
     if (isFullScreen) {
-        console.log(document.exitFullscreen())
         if (document.exitFullscreen) {
             document.exitFullscreen();
+            isFullScreen = !isFullScreen;
+            zoom_map.innerHTML = 'zoom_out_map'
         }
     } else {
-        if (this.videoWindow.nativeElement.webkitRequestFullscreen) {
+        if (videoWindow.webkitRequestFullscreen) {
             console.log('use webkitRequestFullscreen')
-            this.videoWindow.nativeElement.webkitRequestFullscreen()
-        } else if (this.videoWindow.nativeElement.requestFullscreen) {
+            videoWindow.webkitRequestFullscreen()
+            isFullScreen = !isFullScreen;
+            zoom_map.innerHTML = 'zoom_in_map'
+        } else if (videoWindow.requestFullscreen) {
             console.log('use requestFullscreen')
-            this.videoWindow.nativeElement.requestFullscreen()
-        } else if (this.videoWindow.nativeElement.msRequestFullscreen) {
+            videoWindow.requestFullscreen()
+            isFullScreen = !isFullScreen;
+            zoom_map.innerHTML = 'zoom_in_map'
+        } else if (videoWindow.msRequestFullscreen) {
             console.log('use msRequestFullscreen')
-            this.videoWindow.nativeElement.msRequestFullscreen()
+            videoWindow.msRequestFullscreen()
+            isFullScreen = !isFullScreen;
+            zoom_map.innerHTML = 'zoom_in_map'
         }
     }
-    console.log(this.isFullScreen)
+    console.log(isFullScreen)
 }
 
 // 打開設定
 function speedSetting(e) {
     e.stopPropagation()
     showSetting = !this.showSetting;
+    speed_setting.style.display = speed_setting.style.display === 'block' ? 'none' : 'block';
 }
 
 // 調整播放速度
 function setPlaySpeed(value) {
-    videoSpeed = value;
-    this.videoPlayer.nativeElement.playbackRate = value;
-    showSetting = !showSetting;
+    if(value !== 1){
+        speed_text.innerHTML = `Speed: ${value}`;
+    } else {
+        speed_text.innerHTML = null;
+    }
+    videoPlayer.playbackRate = value;
+    speed_setting.style.display = speed_setting.style.display === 'block' ? 'none' : 'block';
 }
 
 // 擷取畫面及上傳到圖片暫存區
 function getVideoMarker() {
-    file = this.base64toFile(image);
+    console.log(image)
+    file = base64toFile(image);
     // file upload api
+    let remake = ''
+    console.log(videoPlayer.currentTime)
+    videoMarkers.push({ imgName: file.name, currentTime: moment.duration(videoPlayer.currentTime, 'seconds').format('hh:mm:ss:SS', { trim: false }), secondTime: videoPlayer.currentTime, remake: '', imgUrl: '' })
+    console.log(videoMarkers)
 
-    console.log(this.videoPlayer.nativeElement.currentTime)
-    videoMarkers.push({ imgName: image, currentTime: moment.duration(this.videoPlayer.nativeElement.currentTime, 'seconds').format('hh:mm:ss:SS', { trim: false }), secondTime: this.videoPlayer.nativeElement.currentTime, remake: '', imgUrl: '' })
-    console.log(this.videoMarkers)
+    let html = `
+        <div style="margin-right:10px;width:200px;">
+            <div style="width:200px;height:120px;">
+                <img style="width:100%;height:100%;object-fit: cover;" src="${image}" alt=""
+                    onclick="jumpSpecifiedFragment()">
+            </div>
+            <p>time: ${currentTime.innerHTML}</p>
+            <textarea rows="4" style="width:100%;max-width:200px;max-height:80px;" placeholder="備註">${remake}</textarea>
+            <div style="text-align: right;">
+                <button style="width:40px !important;height:40px;padding: 0" onclick="deleteFragment()">
+                    <span class="material-icons">
+                        delete
+                    </span>
+                </button>
+            </div>
+        </div>
+    `
+    videoImage_view.innerHTML += html;
+
 }
 
 function base64toFile(dataURI) {
+    console.log(dataURI)
     // 分割数据
     const [meta, data] = dataURI.split(',')
     // 对数据编码
@@ -157,8 +218,12 @@ function base64toFile(dataURI) {
     for (let i = 0; i < byte.length; i++) {
         ia[i] = Number(byte.codePointAt(i))
     }
+    let index = imageIndex + 1;
+    index = String(index).padStart(4, '0')
+
+    console.log(index)
     // 生成文件对象
-    return new File([ia], `${moment().format('yyyy/MM/DD hh:mm')}截圖-${imageIndex}.png`, { type: mime })
+    return new File([ia], `${moment().format('YYYYMMDD')}${index}.png`, { type: mime })
 }
 
 // 跳至marker時間點

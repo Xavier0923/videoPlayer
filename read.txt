@@ -1,0 +1,2 @@
+ --args --disable-web-security --user-data-dir=C:\Users\cti111123\Desktop\video-player\low_resolution
+取消安全跨域
