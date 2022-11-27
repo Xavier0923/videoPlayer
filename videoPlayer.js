@@ -18,9 +18,11 @@ const volume_muted = document.querySelector('.volume-muted');
 // const volume_off = document.querySelector('.volume-off');
 const zoom_map = document.querySelector('.zoom-map');
 const video_progress_inp = document.querySelector('.video-progress-inp');
+const volume_control_inp = document.querySelector('.volume-control-inp')
 const big_play_btn = document.querySelector('.big-play-btn');
 // const big_play_bg = document.querySelector('.big-play-bg');
 const speed_text = document.querySelector('.speed-text');
+
 
 const totalTime = document.querySelector('.totalTime');
 const currentTime = document.querySelector('.currentTime');
@@ -56,16 +58,25 @@ videoPlayer.onloadeddata  = function(){
     video_progress_inp.value = 0;
     // 顯示總時間、當前時間
     currentTime.innerHTML = '0:00';
-    totalTime.innerHTML = moment.duration(videoPlayer.duration, 'seconds').format()
+    totalTime.innerHTML = moment.duration(videoPlayer.duration, 'seconds').format({trim: false})
 };
 
-videoPlayer.addEventListener('timeupdate', () => {
-    console.log('ontimeupdate');
-    video_progress_inp.value = videoPlayer.currentTime;
-    setInterval(() => {
-        currentTime.innerHTML = moment.duration(videoPlayer.currentTime < 1 ? '0:01' : videoPlayer.currentTime, 'seconds').format()
-    }, 1000)
+videoPlayer.addEventListener('playing', () => {
+    console.log('playing')
+    // timer = setInterval(() => {
+    //     console.log('timeupdate')
+    //     video_progress_inp.value = videoPlayer.currentTime;
+    //     currentTime.innerHTML = moment.duration(videoPlayer.currentTime < 1 ? 1 : videoPlayer.currentTime, 'seconds').format({trim: false})
+    // }, (1000 / videoSpeed))
+})
 
+videoPlayer.addEventListener('timeupdate', () => {
+    console.log('timeupdate')
+    timer = setInterval(() => {
+        video_progress_inp.value = videoPlayer.currentTime;
+        currentTime.innerHTML = moment.duration(videoPlayer.currentTime < 1 ? 1 : videoPlayer.currentTime, 'seconds').format({trim: false})
+    }, (1000 / videoSpeed))
+    // clearInterval(timer)
     canvas = document.createElement('canvas');
     // 預載寫入畫布
     canvas.width = '1600';
@@ -73,7 +84,11 @@ videoPlayer.addEventListener('timeupdate', () => {
     const ctx = canvas.getContext('2d');
     ctx.drawImage(videoPlayer, 0, 0, 1600, 900);
     image = canvas.toDataURL('image/png');
-    console.log(image)
+})
+
+// 緩衝
+videoPlayer.addEventListener('waiting', () => {
+    console.log('waiting');
 })
 
 // 播放/暫停
@@ -87,6 +102,7 @@ function playVideo() {
         play_arrow.innerHTML = 'play_arrow'
         big_play_btn.style.display = 'flex'
         isLoading = false;
+        clearInterval(timer)
     }
     isPlay = !isPlay;
 }
@@ -101,21 +117,22 @@ function videoSkip(value) {
 
 // 聲音是否靜音
 function volumeMuted() {
-    volume_muted.innerHTML = volume_muted.innerHTML === 'volume_up' ? 'volume_off' : 'volume_up';
     videoPlayer.muted = !videoPlayer.muted;
-    videoPlayer.volume = videoPlayer.muted ? 0 : 50;
+    volume_muted.innerHTML = videoPlayer.muted ? 'volume_off' : 'volume_up';
+    videoPlayer.volume = (videoPlayer.muted ? 0 : 50) / 100;
+    volume_control_inp.value = videoPlayer.muted ? 0 : 50;
 }
 
 // 聲音大小聲
 function volumeControl(event) {
-    console.log(event.target.value);
     videoPlayer.volume = event.target.value / 100
     videoPlayer.muted = event.target.value === 0 ? true : false;
 }
 
 // 移動時間點
 function timeControl(event) {
-    // 進度條
+    console.log('timechange', event.target.value)
+    clearInterval(timer);
     videoPlayer.currentTime = event.target.value;
     currentTime.innerHTML = moment.duration(videoPlayer.currentTime, 'seconds').format()
 }
@@ -159,12 +176,14 @@ function speedSetting(e) {
 
 // 調整播放速度
 function setPlaySpeed(value) {
+    console.log(value)
     if(value !== 1){
         speed_text.innerHTML = `Speed: ${value}`;
     } else {
         speed_text.innerHTML = null;
     }
     videoPlayer.playbackRate = value;
+    videoSpeed = value;
     speed_setting.style.display = speed_setting.style.display === 'block' ? 'none' : 'block';
 }
 
@@ -174,17 +193,18 @@ function getVideoMarker() {
     file = base64toFile(image);
     // file upload api
     let remake = ''
+    let secondtime = videoPlayer.currentTime;
     console.log(videoPlayer.currentTime)
-    videoMarkers.push({ imgName: file.name, currentTime: moment.duration(videoPlayer.currentTime, 'seconds').format('hh:mm:ss:SS', { trim: false }), secondTime: videoPlayer.currentTime, remake: '', imgUrl: '' })
+    videoMarkers.push({ imgName: file.name, currentTime: moment.duration(videoPlayer.currentTime, 'seconds').format('hh:mm:ss:SS', { trim: false }), secondTime: secondtime, remake: '', imgUrl: '' })
     console.log(videoMarkers)
 
     let html = `
         <div style="margin-right:10px;width:200px;">
             <div style="width:200px;height:120px;">
                 <img style="width:100%;height:100%;object-fit: cover;" src="${image}" alt=""
-                    onclick="jumpSpecifiedFragment()">
+                    onclick="jumpSpecifiedFragment(${secondtime})">
             </div>
-            <p>time: ${currentTime.innerHTML}</p>
+            <p>time: ${moment.duration(videoPlayer.currentTime, 'seconds').format('hh:mm:ss:SS', { trim: false })}</p>
             <textarea rows="4" style="width:100%;max-width:200px;max-height:80px;" placeholder="備註">${remake}</textarea>
             <div style="text-align: right;">
                 <button style="width:40px !important;height:40px;padding: 0" onclick="deleteFragment()">
@@ -228,7 +248,10 @@ function base64toFile(dataURI) {
 
 // 跳至marker時間點
 function jumpSpecifiedFragment(time) {
-    this.videoPlayer.nativeElement.currentTime = time;
+    videoPlayer.currentTime = time;
+    video_progress_inp.value = videoPlayer.currentTime;
+    currentTime.innerHTML = moment.duration(videoPlayer.currentTime, 'seconds').format({trim: false})
+    clearInterval(timer);
 }
 
 // 刪除marker

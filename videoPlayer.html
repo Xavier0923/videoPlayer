@@ -14,7 +14,7 @@
 <body>
     <div class="video-wrapper" style="display: flex;align-items: flex-end;">
         <div class="video-window">
-            <video class="video-player" controls preload="auto" onclick="playVideo()"
+            <video class="video-player" crossorigin="anonymous" controls preload="auto" onclick="playVideo()"
                 poster="\\10.227.24.121\low_resolution\2022\202209\20220901\202209010001\202209010001_thumbnail.jpg">
                 <source src="\\10.227.24.121\low_resolution\2022\202209\20220901\202209010001\202209010001.mp4"
                     type="video/mp4">
@@ -32,8 +32,7 @@
             <div class="video-tools">
                 <!-- 影片進度(上排) -->
                 <div class="video-progress">
-                    <input class="video-progress-inp" type="range" style="width:100%;" min="0"
-                        onchange="timeControl(event)">
+                    <input class="video-progress-inp" type="range" style="width:100%;" min="0" onclick="timeControl(event)" onchange="timeControl(event)">
                 </div>
                 <!-- 左邊功能列(下排) -->
                 <div class="video-features">
@@ -70,7 +69,7 @@
                             </span>
                         </button>
                         <div class="volume-control">
-                            <input type="range" style="width:80px;" min="0" max="100" value=""
+                            <input class="volume-control-inp" type="range" style="width:80px;" min="0" max="100" value="50"
                                 onchange="volumeControl(event)">
                         </div>
                         <!-- 時間 -->
