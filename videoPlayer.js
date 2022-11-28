@@ -44,7 +44,32 @@ let isFullScreen = false;
 let isLoading = false;
 
 let canvas;
-let videoMarkers = [];
+let videoMarkers = {
+    url: '\\\\10.227.24.121\\low_resolution\\2022\\202209\\20220901\\202209010001\\', 
+    marker: [
+        {
+            imgName: '202209010001_00001700.png',
+            currentTime: '00:00:17:00',
+            secondTime: 17,
+            remake: 'asd',
+            createTime: '202209011735'
+        },
+        {
+            imgName: '202209010001_00014700.png',
+            currentTime: '00:01:47:00',
+            secondTime: 157,
+            remake: 'zxc',
+            createTime: '202209011739'
+        },
+        {
+            imgName: '202209010001_00025400.png',
+            currentTime: '00:02:54:00',
+            secondTime: 294,
+            remake: 'zxc',
+            createTime: '202209011750'
+        },
+    ]
+};
 let file;
 let imageIndex = 0;
 let image = ''
@@ -83,13 +108,39 @@ videoPlayer.addEventListener('timeupdate', () => {
     canvas.height = '900';
     const ctx = canvas.getContext('2d');
     ctx.drawImage(videoPlayer, 0, 0, 1600, 900);
-    image = canvas.toDataURL('image/png');
+    
 })
 
 // 緩衝
 videoPlayer.addEventListener('waiting', () => {
     console.log('waiting');
 })
+
+getData();
+
+// 讀取資料
+function getData(){
+    let html = '';
+    videoMarkers.marker.forEach((marker, index) => {
+        let dom = `<div style="margin-right:10px;width:200px;">
+            <div style="width:200px;height:120px;">
+                <img style="width:100%;height:100%;object-fit: cover;" src="${videoMarkers.url + marker.imgName}" alt=""
+                    onclick="jumpSpecifiedFragment(${marker.secondTime})">
+            </div>
+            <p>time: ${marker.currentTime}</p>
+            <textarea rows="4" style="width:100%;max-width:200px;max-height:80px;" placeholder="備註">${marker.remake}</textarea>
+            <div style="text-align: right;">
+                <button style="width:40px !important;height:40px;padding: 0;color:#000 !important;border: 1px solid #000;" onclick="deleteFragment(${index})">
+                    <span class="material-icons">
+                        delete
+                    </span>
+                </button>
+            </div>
+        </div>`
+        html += dom;
+    })
+    videoImage_view.innerHTML = html;
+}
 
 // 播放/暫停
 function playVideo() {
@@ -189,8 +240,9 @@ function setPlaySpeed(value) {
 
 // 擷取畫面及上傳到圖片暫存區
 function getVideoMarker() {
+    // image = canvas.toBlob('image/png');
     console.log(image)
-    file = base64toFile(image);
+    // file = base64toFile(image);
     // file upload api
     let remake = ''
     let secondtime = videoPlayer.currentTime;
@@ -248,6 +300,7 @@ function base64toFile(dataURI) {
 
 // 跳至marker時間點
 function jumpSpecifiedFragment(time) {
+    console.log(time)
     videoPlayer.currentTime = time;
     video_progress_inp.value = videoPlayer.currentTime;
     currentTime.innerHTML = moment.duration(videoPlayer.currentTime, 'seconds').format({trim: false})
@@ -256,5 +309,8 @@ function jumpSpecifiedFragment(time) {
 
 // 刪除marker
 function deleteFragment(index) {
-    videoMarkers.splice(index, 1)
+    console.log(index)
+    videoMarkers.marker.splice(index, 1)
+    console.log(videoMarkers)
+    getData();
 }
